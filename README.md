@@ -11,7 +11,7 @@
 - `int64` の値は Python の任意精度 `int`、`date-time` はタイムゾーン付き `datetime` として精度を保持
 - 公開 API のため認証不要。WebSocket (`/v3/realtime/`) は対象外
 
-このパッケージは現在Beta版として開発されています。互換性のない変更が入る可能性があります。
+このパッケージは現在Alpha版として開発されています。互換性のない変更が入る可能性があります。
 
 詳細な仕様や API リファレンスは [日本語ドキュメント](https://github.com/Yamatomato0105/takasumibot-toolkit-py/blob/main/docs/README.ja.md) / [English Documentation](https://github.com/Yamatomato0105/takasumibot-toolkit-py/blob/main/docs/README.en.md) を参照してください。
 

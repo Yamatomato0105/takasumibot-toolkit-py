@@ -1,6 +1,6 @@
 [project]
 name = "takasumibot-toolkit"
-version = "0.1.0b0"
+version = "0.1.0a0"
 description = "Async Python client toolkit for the TakasumiBOT API"
 authors = [{ name = "Yamatomato0105" }]
 requires-python = ">=3.11"
@@ -18,7 +18,7 @@ keywords = [
     "httpx",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",

@@ -24,7 +24,7 @@ pip install --pre takasumibot-toolkit
 pip install -e ".[dev]"
 ```
 
-This package is an beta release; backward-incompatible changes may occur.
+This package is an alpha release; backward-incompatible changes may occur.
 
 ## Quick start (async)
 

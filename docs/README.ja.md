@@ -24,7 +24,7 @@ pip install --pre takasumibot-toolkit
 pip install -e ".[dev]"
 ```
 
-このパッケージはBeta版です。互換性のない変更が入る可能性があります。
+このパッケージはAlpha版です。互換性のない変更が入る可能性があります。
 
 ## クイックスタート（非同期）
 

@@ -1,0 +1,121 @@
+name: CI
+
+# The repository ships plain Markdown and has no mkdocs.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint (ruff + mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: ruff check
+        run: ruff check src tests scripts
+      - name: ruff format --check
+        run: ruff format --check src tests scripts
+      - name: mypy --strict
+        run: mypy src
+
+  openapi:
+    name: openapi (generated models + path consistency)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Generated models are committed and fresh
+        run: python scripts/generate_models.py --check
+      - name: Only documented HTTP paths are used
+        run: python scripts/check_openapi_consistency.py
+
+  test:
+    name: test (py${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        include:
+          # Newest supported interpreter, Linux only (keeps the matrix small).
+          - os: ubuntu-latest
+            python-version: "3.14"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: pytest (live tests are deselected by default)
+        run: pytest --cov=takasumibot_toolkit --cov-report=term-missing --cov-fail-under=90
+      - name: doctests in src
+        run: pytest -q --doctest-modules src -o addopts=""
+
+  build:
+    name: build (sdist + wheel)
+    runs-on: ubuntu-latest
+    needs: [lint, openapi, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build twine
+      - name: Build
+        run: python -m build
+      - name: twine check
+        run: twine check dist/*
+      - name: Verify distribution metadata
+        run: |
+          python - <<'PY'
+          import glob
+          import tarfile
+          import zipfile
+
+          wheel = glob.glob("dist/*.whl")[0]
+          sdist = glob.glob("dist/*.tar.gz")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          assert any(n.endswith("takasumibot_toolkit/py.typed") for n in names), names
+          assert any(n.startswith("takasumibot_toolkit/__init__.py") for n in names), names
+          metadata = next(n for n in names if n.endswith("METADATA"))
+          text = zipfile.ZipFile(wheel).read(metadata).decode()
+          assert "Name: takasumibot-toolkit" in text, text.splitlines()[:5]
+          assert "Requires-Dist: httpx" in text and "Requires-Dist: pydantic" in text, text
+          with tarfile.open(sdist) as tar:
+              members = tar.getnames()
+          assert any(m.endswith("README.md") for m in members), members
+          assert any(m.endswith("py.typed") for m in members), members
+          print("distribution metadata ok:", wheel, sdist)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
